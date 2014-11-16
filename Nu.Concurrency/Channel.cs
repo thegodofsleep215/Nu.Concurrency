@@ -9,10 +9,10 @@ namespace Nu.Concurrency
     public class Channel<T> : IDisposable
     {
         private readonly AutoResetEvent sendEvent = new AutoResetEvent(false);
-        private readonly AutoResetEvent retreiveEvent = new AutoResetEvent(false);
+        private readonly AutoResetEvent receiveEvent = new AutoResetEvent(false);
         private int waiting;
         private readonly object sendLock = new object();
-        private readonly object retreiveLock = new object();
+        private readonly object receiveLock = new object();
         private bool closed;
         private bool disposed;
         private T nextItem;
@@ -32,18 +32,18 @@ namespace Nu.Concurrency
             {
                 nextItem = item;
                 sendEvent.Set();
-                retreiveEvent.WaitOne();
+                receiveEvent.WaitOne();
                 if(disposed) throw new ChannelDisposedException();
                 return true;
             }
         }
 
-        public bool Retreive(out T item, int timeout = -1)
+        public bool Receive(out T item, int timeout = -1)
         {
-            return Retrevie(out item, TimeSpan.FromMilliseconds(timeout));
+            return Receive(out item, TimeSpan.FromMilliseconds(timeout));
         }
 
-        public bool Retrevie(out T item, TimeSpan timeout)
+        public bool Receive(out T item, TimeSpan timeout)
         {
             if(disposed) throw new ChannelDisposedException();
             if (closed && waiting == 0)
@@ -51,7 +51,7 @@ namespace Nu.Concurrency
                 item = default(T);
                 return false;
             }
-            lock (retreiveLock)
+            lock (receiveLock)
             {
                 if (sendEvent.WaitOne(timeout))
                 {
@@ -59,7 +59,7 @@ namespace Nu.Concurrency
                     item = nextItem;
                     waiting--;
 
-                    retreiveEvent.Set();
+                    receiveEvent.Set();
                     return true;
                 }
                 item = default (T);
@@ -75,8 +75,10 @@ namespace Nu.Concurrency
         public void Dispose()
         {
             disposed = true;
+            sendEvent.Set();
+            receiveEvent.Set();
             sendEvent.Dispose();
-            retreiveEvent.Dispose();
+            receiveEvent.Dispose();
         }
         
         #region Static Methods
@@ -87,7 +89,7 @@ namespace Nu.Concurrency
             var tasks = channels.ToList().Select(x => Task.Factory.StartNew(() =>
             {
                 T item;
-                while (x.Retreive(out item))
+                while (x.Receive(out item))
                 {
                     channel.Send(item);
                 }
