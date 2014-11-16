@@ -42,12 +42,11 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
-/bin
-/obj
+*/bin
+*/obj
 *.user
 *.suo
 *.sln.cache
 Thumbs.db
-ExampleCommandLine/bin/Debug/ExampleCommandLine.exe
 *.pdb
 *.manifest
