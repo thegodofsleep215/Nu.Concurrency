@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 
 namespace Nu.Concurrency
 {
-    // Select
     public class Channel<T> : IDisposable
     {
         private readonly AutoResetEvent sendEvent = new AutoResetEvent(false);
